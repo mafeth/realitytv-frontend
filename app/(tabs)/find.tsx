@@ -15,6 +15,7 @@ import { Show } from "@/app/types";
 import { useNavigation } from "@react-navigation/native";
 import Colors from "@/constants/Colors";
 import { useColorScheme } from "@/components/useColorScheme";
+import ShowBox from "@/components/ShowBox";
 
 export default function ExploreScreen() {
   const [shows, setShows] = useState<Show[]>([]);
@@ -22,7 +23,7 @@ export default function ExploreScreen() {
   const [query, setQuery] = useState("");
 
   const navigation = useNavigation();
-  
+
   const colorScheme = useColorScheme();
 
   useEffect(() => {
@@ -30,7 +31,6 @@ export default function ExploreScreen() {
   }, []);
 
   const searchShows = async () => {
-
     setLoading(true);
     try {
       const response = await fetch(
@@ -45,10 +45,29 @@ export default function ExploreScreen() {
     }
   };
   return (
-    
-    <View style={[styles.container, { backgroundColor: Colors[colorScheme ?? "light"].background }]}>
-      <View style={[styles.searchContainer, { backgroundColor: Colors[colorScheme ?? "light"].secondaryBackground }]}>
-        <View style={[styles.textInputContainer, { backgroundColor: Colors[colorScheme ?? "light"].secondaryBackground }]}>
+    <View
+      style={[
+        styles.container,
+        { backgroundColor: Colors[colorScheme ?? "light"].background },
+      ]}
+    >
+      <View
+        style={[
+          styles.searchContainer,
+          {
+            backgroundColor: Colors[colorScheme ?? "light"].secondaryBackground,
+          },
+        ]}
+      >
+        <View
+          style={[
+            styles.textInputContainer,
+            {
+              backgroundColor:
+                Colors[colorScheme ?? "light"].secondaryBackground,
+            },
+          ]}
+        >
           <TextInput
             placeholder="Suchen..."
             placeholderTextColor="gray"
@@ -110,31 +129,12 @@ export default function ExploreScreen() {
         >
           {shows.map((show: Show) => (
             <TouchableOpacity
+              onPress={() => {
+                navigation.navigate("ShowDetail", { show });
+              }}
               key={show.showId}
-              onPress={() => navigation.navigate("ShowDetail", { show })}
-              style={[styles.showContainer, { backgroundColor: Colors[colorScheme ?? "light"].secondaryBackground }]}
             >
-              <View style={styles.showImageContainer}>
-                <Image
-                  source={{ uri: show.thumbnailUrl }}
-                  style={styles.showImage}
-                />
-              </View>
-              <View style={[styles.showRight, { backgroundColor: Colors[colorScheme ?? "light"].secondaryBackground }]}>
-                <Text style={[styles.showTitle, { color: Colors[colorScheme ?? "light"].text }]}>{show.title}</Text>
-                <Text
-                  style={[styles.showDescription,  { color: Colors[colorScheme ?? "light"].text }]}
-                  numberOfLines={10}
-                  ellipsizeMode="tail"
-                >
-                  {show.description}
-                </Text>
-                <View style={[styles.showGenreTagContainer, { backgroundColor: Colors[colorScheme ?? "light"].secondaryBackground }]}>
-                  {show.genre.split(", ").map((genre) => (
-                    <GenreTag key={genre}>{genre}</GenreTag>
-                  ))}
-                </View>
-              </View>
+              <ShowBox key={show.showId} show={show} />
             </TouchableOpacity>
           ))}
         </ScrollView>

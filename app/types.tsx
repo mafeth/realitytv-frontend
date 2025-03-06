@@ -9,6 +9,7 @@ export type Show = {
   streamingServices: string;
   startDate: Date;
   endDate: Date;
+  running: boolean;
 };
 
 export type Person = {

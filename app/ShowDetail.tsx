@@ -7,7 +7,7 @@ import {
 } from "react-native";
 import { Text, View } from "@/components/Themed";
 import { Stack } from "expo-router";
-import { useRoute } from "@react-navigation/native";
+import { useRoute, useNavigation } from "@react-navigation/native";
 import { useState, useEffect } from "react";
 import { Show, Season } from "@/app/types";
 import Colors from "@/constants/Colors";
@@ -17,6 +17,7 @@ import GenreTag from "@/components/GenreTag";
 
 export default function ShowDetailScreen() {
   const route = useRoute();
+  const navigation = useNavigation();
   const { show } = route.params as { show: Show };
   const [scrollY] = useState(new Animated.Value(0));
   const [seasons, setSeasons] = useState<Season[]>([]);
@@ -68,6 +69,12 @@ export default function ShowDetailScreen() {
   useEffect(() => {
     fetchSeasons();
   }, []);
+
+  useEffect(() => {
+    if (seasons.length > 0) {
+      setExpandedSeason(seasons[0].seasonId); // Expand the top season initially
+    }
+  }, [seasons]);
 
   const fetchSeasons = async () => {
     setLoading(true);
@@ -232,7 +239,16 @@ export default function ShowDetailScreen() {
 
                     {
                       season.participants.map((participant) => (
-                        <View style={styles.personContainer} key={participant.personId}>
+                        <TouchableOpacity
+                          key={participant.personId}
+                          style={styles.personContainer}
+                          onPress={() =>
+                            navigation.navigate("PersonDetail", {
+                              person: participant,
+                              show: show,
+                            })
+                          }
+                        >
                           <View style={styles.personImageContainer}>
                             <Image
                               source={{ uri: participant.imageUrl }}
@@ -242,7 +258,7 @@ export default function ShowDetailScreen() {
                           <Text style={styles.personInfoText}>
                             {participant.name} ({calculateAge(participant.birthDate)})
                           </Text>
-                        </View>
+                        </TouchableOpacity>
                       ))
                     }
 

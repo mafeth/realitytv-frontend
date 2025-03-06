@@ -48,9 +48,10 @@ function RootLayoutNav() {
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <Stack>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="modal" options={{ presentation: 'modal', headerStyle: {backgroundColor: '#1b1e2b'}}} />
+        <Stack.Screen name="modal" options={{ presentation: 'modal' , headerStyle: {backgroundColor: '#1b1e2b'}}} />
         <Stack.Screen name="ShowDetail" options={{ headerStyle: {backgroundColor: '#1b1e2b'}, headerTintColor: '#fff' }} />
         <Stack.Screen name="SeasonDetail" options={{ headerStyle: {backgroundColor: '#1b1e2b'}, headerTintColor: '#fff' }} />
+        <Stack.Screen name="PersonDetail" options={{ headerStyle: {backgroundColor: '#1b1e2b'}, headerTintColor: '#fff' }} />
       </Stack>
     </ThemeProvider>
   );
