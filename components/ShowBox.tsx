@@ -6,16 +6,21 @@ import GenreTag from "@/components/GenreTag";
 import { TouchableOpacity } from "react-native";
 // import { navigation } from 'expo-router/build/global-state/routing';
 import { useNavigation } from "@react-navigation/native";
-import { Show } from "@/app/types";
+import { Season, Show } from "@/app/types";
 
-export default function ShowBox({ show }: { show: Show }) {
+export default function ShowBox({
+  show,
+  displayedSeason,
+}: {
+  show: Show;
+  displayedSeason?: Season;
+}) {
   const navigation = useNavigation();
 
   const colorScheme = useColorScheme();
 
   return (
     <View
-      
       style={[
         styles.showContainer,
         {
@@ -43,6 +48,12 @@ export default function ShowBox({ show }: { show: Show }) {
         >
           {show.title}
         </Text>
+        {displayedSeason ? (
+          <Text style={{fontWeight: 'bold', color: '#aac0ce'}}>
+            Staffel {displayedSeason.seasonNumber} (
+            {new Date(displayedSeason.startDate).getFullYear()})
+          </Text>
+        ) : null}
         <Text
           style={[
             styles.showDescription,
@@ -85,15 +96,14 @@ const styles = StyleSheet.create({
     // marginLeft: 3,
     flex: 1,
     color: "lightgray",
-    
   },
   showContainer: {
     width: "100%",
     height: 220,
     alignItems: "center",
-    
+
     padding: 10,
-    marginBottom: 10,
+    // marginBottom: 10,
     borderRadius: 10,
     flexDirection: "row",
     justifyContent: "flex-start",
@@ -124,7 +134,6 @@ const styles = StyleSheet.create({
     backgroundColor: "#1b1e2b",
     paddingLeft: 10,
     paddingVertical: 2,
-    
   },
   showGenreTagContainer: {
     flexDirection: "row",

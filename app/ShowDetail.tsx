@@ -246,6 +246,7 @@ export default function ShowDetailScreen() {
                             navigation.navigate("PersonDetail", {
                               person: participant,
                               show: show,
+                              season: season,
                             })
                           }
                         >

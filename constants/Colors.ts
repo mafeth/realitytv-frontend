@@ -10,6 +10,7 @@ export default {
     tabIconSelected: tintColorLight,
     secondaryBackground: '#edeef0',
     accentColor: 'gray',
+    textColor: 'black'
   },
   dark: {
     text: '#fff',
@@ -19,5 +20,6 @@ export default {
     tabIconSelected: tintColorDark,
     secondaryBackground: '#1b1e2b',
     accentColor: '#2b2e3b',
+    textColor: 'white'
   },
 };

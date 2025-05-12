@@ -1,0 +1,663 @@
+import {
+    StyleSheet,
+    TouchableOpacity,
+    Text,
+    View,
+    Image,
+    FlatList,
+    TextInput,
+    Modal,
+    // Button, // Using TouchableOpacity for modal buttons now
+    ActivityIndicator,
+    Keyboard,
+    SafeAreaView,
+    ScrollView, // Import ScrollView for modal content
+  } from "react-native";
+  import { useEffect, useState, useContext, useRef, useCallback } from "react";
+
+  import EditScreenInfo from "@/components/EditScreenInfo";
+  import { useNavigation } from "@react-navigation/native";
+  import { Stack } from "expo-router";
+  import Colors from "@/constants/Colors";
+  import GenreTag from "@/components/GenreTag";
+  import ShowBox from "@/components/ShowBox";
+  import { useColorScheme } from "@/components/useColorScheme";
+  import { Person, Season, Show } from "@/app/types"; // Assuming these types are defined correctly
+  import { useRoute } from "@react-navigation/native";
+  import { GlobalContext } from "@/app/GlobalContext"; // Assuming this context is set up
+  import Entypo from '@expo/vector-icons/Entypo';
+
+  // Define a basic Person type if not imported
+  interface PersonItem {
+    personId: number;
+    name: string;
+    birthDate: string;
+    imageUrl: string | null;
+  }
+
+  // Type for the data selected in the modal for the final merged person
+  // Using Partial because initially it might be empty or partially filled
+  type MergedDataType = Partial<PersonItem>;
+
+  // API Base URL (adjust if needed)
+  const API_BASE_URL = "http://192.168.178.42:8080";
+
+  export default function PersonDetail() {
+    const navigation = useNavigation();
+    const colorScheme = useColorScheme();
+    const route = useRoute();
+
+    // --- Context Handling ---
+    // ... (context code remains the same) ...
+
+    const [persons, setPersons] = useState<PersonItem[]>([]);
+    const [selectedPersons, setSelectedPersons] = useState<number[]>([]);
+    const [searchQuery, setSearchQuery] = useState("");
+    const [isLoading, setIsLoading] = useState(false);
+    const [isModalVisible, setIsModalVisible] = useState(false);
+    const debounceTimeout = useRef<NodeJS.Timeout | null>(null);
+
+    // State to hold the full details of the persons selected for merging
+    const [detailedSelectedPersons, setDetailedSelectedPersons] = useState<PersonItem[]>([]);
+    // State to hold the chosen properties for the final merged person
+    const [mergedData, setMergedData] = useState<MergedDataType>({});
+
+    // --- Fetch Persons Function ---
+    const fetchPersons = useCallback(async (query: string) => {
+      setIsLoading(true);
+      let url = `${API_BASE_URL}/persons`;
+      if (query) {
+        url = `${API_BASE_URL}/persons/search?q=${encodeURIComponent(query)}`;
+      }
+      console.log("Fetching from:", url);
+
+      try {
+        const response = await fetch(url);
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
+        }
+        const data = await response.json();
+        setPersons(data);
+      } catch (error) {
+        console.error("Error fetching persons:", error);
+        setPersons([]);
+      } finally {
+        setIsLoading(false);
+      }
+    }, []);
+
+    // --- Debounced Search Handler ---
+    const handleSearchChange = (text: string) => {
+      setSearchQuery(text);
+      if (debounceTimeout.current) {
+        clearTimeout(debounceTimeout.current);
+      }
+      debounceTimeout.current = setTimeout(() => {
+        fetchPersons(text);
+      }, 500);
+    };
+
+    // --- Initial Fetch on Mount ---
+    useEffect(() => {
+      fetchPersons("");
+      return () => {
+        if (debounceTimeout.current) {
+          clearTimeout(debounceTimeout.current);
+        }
+      };
+    }, [fetchPersons]);
+
+    // --- Toggle Selection ---
+    const toggleSelection = (personId: number) => {
+      setSelectedPersons((prevSelected) =>
+        prevSelected.includes(personId)
+          ? prevSelected.filter((id) => id !== personId)
+          : [...prevSelected, personId]
+      );
+    };
+
+    // --- Deselect All ---
+    const deselectAll = () => {
+        setSelectedPersons([]);
+    };
+
+    // --- Calculate Age ---
+    function calculateAge(birthDate: string): number | string {
+      if (!birthDate) return '?';
+      const birth = new Date(birthDate);
+      if (isNaN(birth.getTime())) return '?';
+      const today = new Date();
+      let age = today.getFullYear() - birth.getFullYear();
+      const m = today.getMonth() - birth.getMonth();
+      if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) {
+        age--;
+      }
+      return age >= 0 ? age : '?';
+    }
+
+    // --- Render Person Item ---
+    const renderPerson = ({ item }: { item: PersonItem }) => {
+      const isSelected = selectedPersons.includes(item.personId);
+      const imageSource = item.imageUrl ? { uri: item.imageUrl } : null;
+      const age = calculateAge(item.birthDate);
+
+      return (
+        <TouchableOpacity
+          style={[styles.personBox, isSelected && styles.selectedPersonBox]}
+          onPress={() => toggleSelection(item.personId)}
+          activeOpacity={0.7}
+        >
+          {/* Image Container */}
+          <View style={styles.imageContainer}>
+            {imageSource ? (
+              <Image
+                style={styles.image}
+                source={imageSource}
+                onError={(e) => console.log("Failed to load image:", e.nativeEvent.error)}
+              />
+            ) : (
+              <View style={styles.imagePlaceholder}>
+                <Text style={styles.placeholderText}>?</Text>
+              </View>
+            )}
+          </View>
+          {/* Text Container */}
+          <View style={styles.textContainer}>
+            <Text style={styles.nameText} numberOfLines={1} ellipsizeMode="tail">
+              {item.name} ({age})
+            </Text>
+            <Text style={styles.birthDateText}>
+              Geburtsdatum: {item.birthDate || 'N/A'}
+            </Text>
+          </View>
+        </TouchableOpacity>
+      );
+    };
+
+    // --- Modal Handlers ---
+    const openModal = () => {
+      // Find the full PersonItem objects for the selected IDs
+      const details = persons.filter(p => selectedPersons.includes(p.personId));
+      setDetailedSelectedPersons(details);
+
+      // Initialize mergedData with the properties of the first selected person
+      if (details.length > 0) {
+        setMergedData({
+            personId: details[0].personId,
+            name: details[0].name,
+            birthDate: details[0].birthDate,
+            imageUrl: details[0].imageUrl,
+        });
+      } else {
+        setMergedData({}); // Reset if somehow no details found
+      }
+
+      console.log("Opening modal with details:", details);
+      setIsModalVisible(true);
+    };
+
+    const closeModal = () => {
+      setIsModalVisible(false);
+      // Optionally reset detailedSelectedPersons and mergedData if needed
+      // setDetailedSelectedPersons([]);
+      // setMergedData({});
+    };
+
+    // --- Handle Selection within Modal ---
+    const handlePropertySelect = (category: keyof MergedDataType, value: any) => {
+        setMergedData(prev => ({
+            ...prev,
+            [category]: value,
+        }));
+    };
+
+    // --- Handle Final Merge Action ---
+    const handleConfirmMerge = () => {
+        console.log("Confirming merge with data:", mergedData);
+        setSelectedPersons([]); // Clear selection after confirming
+        setDetailedSelectedPersons([]); // Clear detailed persons
+        setMergedData({}); // Reset merged data
+        closeModal(); // Close modal
+        // --- TODO: Implement API call to merge persons here ---
+        // Example:
+        // try {
+        //   const response = await fetch(`${API_BASE_URL}/persons/merge`, {
+        //     method: 'POST',
+        //     headers: { 'Content-Type': 'application/json' },
+        //     body: JSON.stringify({
+        //         idsToMerge: selectedPersons, // Send original IDs
+        //         finalData: mergedData // Send the chosen data
+        //     })
+        //   });
+        //   if (!response.ok) { throw new Error('Merge failed'); }
+        //   // Handle success: Close modal, refresh list, show success message
+        //   closeModal();
+        //   fetchPersons(""); // Refresh the list
+        //   setSelectedPersons([]); // Clear selection
+        // } catch (error) {
+        //   console.error("Merge failed:", error);
+        //   // Show error message to user
+        // }
+        // --- End TODO ---
+
+        closeModal(); // Close modal after logging for now
+    };
+
+    // --- Component Return ---
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.container}>
+          <Stack.Screen options={{ title: "Personen auswählen" }} />
+
+          {/* Search Input */}
+          <View style={styles.searchContainer}>
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Person suchen..."
+              placeholderTextColor="#a9b1d6"
+              value={searchQuery}
+              onChangeText={handleSearchChange}
+              clearButtonMode="while-editing"
+            />
+          </View>
+
+          {/* List or Loading/Empty Indicator */}
+          <View style={styles.listContainer}>
+            {isLoading ? (
+              <ActivityIndicator size="large" color="#c0caf5" style={styles.loadingIndicator} />
+            ) : (
+              <FlatList
+                data={persons}
+                keyExtractor={(item) => item.personId.toString()}
+                renderItem={renderPerson}
+                contentContainerStyle={styles.flatListContent}
+                ListEmptyComponent={<Text style={styles.emptyListText}>Keine Personen gefunden.</Text>}
+                keyboardShouldPersistTaps="handled"
+                onScrollBeginDrag={Keyboard.dismiss}
+              />
+            )}
+          </View>
+
+          {/* Button Container */}
+          {selectedPersons.length > 0 && (
+            <View style={styles.buttonContainer}>
+              <TouchableOpacity style={[styles.bottomButton, styles.deselectButton]} onPress={deselectAll} activeOpacity={0.8}>
+                  <Text style={styles.bottomButtonText}>Aufheben</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.bottomButton, styles.mergeButton]} onPress={openModal} activeOpacity={0.8}>
+                <Text style={styles.bottomButtonText}>Zusammenfügen ({selectedPersons.length})</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {/* Merge Modal */}
+          <Modal
+            animationType="slide"
+            transparent={true}
+            visible={isModalVisible}
+            onRequestClose={closeModal}
+          >
+            <View style={styles.modalOverlay}>
+              <View style={styles.modalContent}>
+                <Text style={styles.modalTitle}>Daten für Zusammenführung auswählen</Text>
+                <ScrollView style={styles.modalScrollView}>
+                  {/* ID Section */}
+                  <View style={styles.modalCategory}>
+                    <Text style={styles.modalCategoryTitle}>ID</Text>
+                    <View style={styles.modalOptionsContainer}>
+                      {detailedSelectedPersons.map(p => (
+                        <TouchableOpacity
+                          key={`id-${p.personId}`}
+                          style={[
+                            styles.modalOption,
+                            mergedData.personId === p.personId && styles.modalOptionSelected
+                          ]}
+                          onPress={() => handlePropertySelect('personId', p.personId)}
+                        >
+                          <Text style={styles.modalOptionText}>{p.personId}</Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  </View>
+
+                  {/* Name Section */}
+                  <View style={styles.modalCategory}>
+                    <Text style={styles.modalCategoryTitle}>Name</Text>
+                    <View style={styles.modalOptionsContainer}>
+                      {detailedSelectedPersons.map(p => (
+                        <TouchableOpacity
+                          key={`name-${p.personId}`}
+                          style={[
+                            styles.modalOption,
+                            mergedData.name === p.name && styles.modalOptionSelected
+                          ]}
+                          onPress={() => handlePropertySelect('name', p.name)}
+                        >
+                          <Text style={styles.modalOptionText}>{p.name}</Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  </View>
+
+                  {/* Birthday Section */}
+                  <View style={styles.modalCategory}>
+                    <Text style={styles.modalCategoryTitle}>Geburtstag</Text>
+                    <View style={styles.modalOptionsContainer}>
+                      {detailedSelectedPersons.map(p => (
+                        <TouchableOpacity
+                          key={`bday-${p.personId}`}
+                          style={[
+                            styles.modalOption,
+                            mergedData.birthDate === p.birthDate && styles.modalOptionSelected
+                          ]}
+                          onPress={() => handlePropertySelect('birthDate', p.birthDate)}
+                        >
+                          <Text style={styles.modalOptionText}>{p.birthDate || 'N/A'}</Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  </View>
+
+                  {/* Image Section */}
+                  <View style={styles.modalCategory}>
+                    <Text style={styles.modalCategoryTitle}>Bild</Text>
+                    <View style={[styles.modalOptionsContainer, styles.modalImageOptionsContainer]}>
+                      {detailedSelectedPersons.map(p => (
+                        <TouchableOpacity
+                          key={`img-${p.personId}`}
+                          style={[
+                            styles.modalImageOption,
+                            mergedData.imageUrl === p.imageUrl && styles.modalOptionSelected // Reuse selected style for border
+                          ]}
+                          onPress={() => handlePropertySelect('imageUrl', p.imageUrl)}
+                        >
+                          {p.imageUrl ? (
+                            <Image source={{ uri: p.imageUrl }} style={styles.modalOptionImage} />
+                          ) : (
+                            <View style={styles.modalOptionImagePlaceholder}>
+                                <Text style={styles.placeholderText}>?</Text>
+                            </View>
+                          )}
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  </View>
+                </ScrollView>
+
+                {/* Modal Action Buttons */}
+                <View style={styles.modalActionContainer}>
+                    <TouchableOpacity
+                        style={[styles.modalActionButton, styles.modalCancelButton]}
+                        onPress={closeModal}
+                    >
+                        <Text style={styles.modalActionButtonText}>Abbrechen</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                        style={[styles.modalActionButton, styles.modalConfirmButton]}
+                        onPress={handleConfirmMerge} // Call the merge handler
+                    >
+                        <Text style={styles.modalActionButtonText}>Bestätigen</Text>
+                    </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+          </Modal>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // --- Styles ---
+  const styles = StyleSheet.create({
+    safeArea: {
+      flex: 1,
+      backgroundColor: "#1b1e2b",
+    },
+    container: {
+      flex: 1,
+      backgroundColor: "#292d3e",
+    },
+    searchContainer: {
+      padding: 10,
+      backgroundColor: "#1b1e2b",
+      borderBottomWidth: 1,
+      borderBottomColor: "#3a3f5c",
+    },
+    searchInput: {
+      height: 45,
+      backgroundColor: "#292d3e",
+      borderRadius: 8,
+      paddingHorizontal: 15,
+      fontSize: 16,
+      color: "#c0caf5",
+      borderWidth: 1,
+      borderColor: "#4f5677",
+    },
+    listContainer: {
+      flex: 1,
+    },
+    loadingIndicator: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    flatListContent: {
+      paddingHorizontal: '5%',
+      paddingTop: 15,
+      paddingBottom: 90, // Space for bottom buttons
+    },
+    personBox: {
+      backgroundColor: "#1b1e2b",
+      padding: 12,
+      borderRadius: 10,
+      marginBottom: 10,
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 12,
+      width: "100%",
+      minHeight: 70,
+      borderWidth: 1,
+      borderColor: "#3a3f5c",
+    },
+    selectedPersonBox: {
+      backgroundColor: "#3a3f5c",
+      borderColor: "#6d78ad",
+    },
+    imageContainer: {
+      width: 50,
+      height: 50,
+      borderRadius: 25,
+      backgroundColor: "#4f5677",
+      overflow: 'hidden',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    image: {
+      width: "100%",
+      height: "100%",
+    },
+    imagePlaceholder: {
+      width: "100%",
+      height: "100%",
+      justifyContent: 'center',
+      alignItems: 'center',
+      backgroundColor: "#4f5677",
+    },
+    placeholderText: {
+      color: '#a9b1d6',
+      fontSize: 20,
+      fontWeight: 'bold',
+    },
+    textContainer: {
+      flex: 1,
+      justifyContent: 'center',
+    },
+    nameText: {
+      color: "#c0caf5",
+      fontSize: 16,
+      fontWeight: "bold",
+      marginBottom: 4,
+    },
+    birthDateText: {
+      color: "#a9b1d6",
+      fontSize: 13,
+    },
+    emptyListText: {
+        marginTop: 50,
+        textAlign: 'center',
+        fontSize: 16,
+        color: '#a9b1d6',
+    },
+    buttonContainer: {
+        position: 'absolute',
+        bottom: 55,
+        left: 0,
+        right: 0,
+        flexDirection: 'row',
+        justifyContent: 'space-around',
+        alignItems: 'center',
+        paddingVertical: 10,
+        paddingHorizontal: 10,
+        backgroundColor: '#1b1e2b', // Solid background
+        borderTopWidth: 1,
+        borderTopColor: '#3a3f5c',
+        minHeight: 70,
+        zIndex: 1,
+    },
+    bottomButton: {
+        flex: 1,
+        paddingVertical: 12,
+        borderRadius: 25,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginHorizontal: 5,
+        elevation: 3,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.2,
+        shadowRadius: 2,
+    },
+    mergeButton: {
+      backgroundColor: '#7aa2f7', // Blue
+    },
+    deselectButton: {
+      backgroundColor: '#f7768e', // Reddish
+    },
+    bottomButtonText: {
+      color: '#1a1b26', // Dark text
+      fontSize: 15,
+      fontWeight: 'bold',
+    },
+    // Modal Styles
+    modalOverlay: {
+      flex: 1,
+      justifyContent: 'flex-end', // Position modal at the bottom
+      backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    },
+    modalContent: {
+      width: '100%',
+      maxHeight: '75%', // Limit modal height
+      backgroundColor: '#292d3e', // Dark background for modal
+      borderTopLeftRadius: 20, // Rounded top corners
+      borderTopRightRadius: 20,
+      padding: 20,
+      paddingBottom: 30, // Extra padding at bottom for buttons
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: -2 }, // Shadow on top edge
+      shadowOpacity: 0.25,
+      shadowRadius: 4,
+      elevation: 5,
+    },
+    modalTitle: {
+      fontSize: 18, // Slightly smaller title
+      fontWeight: 'bold',
+      color: '#c0caf5',
+      marginBottom: 20, // More space below title
+      textAlign: 'center',
+    },
+    modalScrollView: {
+        marginBottom: 15, // Space before action buttons
+    },
+    modalCategory: {
+        marginBottom: 20, // Space between categories
+    },
+    modalCategoryTitle: {
+        fontSize: 16,
+        fontWeight: '600', // Semi-bold
+        color: '#a9b1d6', // Lighter text for title
+        marginBottom: 10, // Space below category title
+        borderBottomWidth: 1,
+        borderBottomColor: '#4f5677',
+        paddingBottom: 5,
+    },
+    modalOptionsContainer: {
+        flexDirection: 'row', // Arrange options horizontally
+        flexWrap: 'wrap', // Allow wrapping to next line
+        gap: 8, // Space between options
+    },
+    modalImageOptionsContainer: {
+        justifyContent: 'flex-start', // Align images to the start
+    },
+    modalOption: {
+        backgroundColor: '#4f5677', // Default background for options
+        paddingVertical: 8,
+        paddingHorizontal: 12,
+        borderRadius: 15, // More rounded options
+        borderWidth: 2,
+        borderColor: 'transparent', // No border by default
+    },
+    modalOptionSelected: {
+        borderColor: '#7aa2f7', // Blue border for selected option
+        backgroundColor: '#3a3f5c', // Slightly different background when selected
+    },
+    modalOptionText: {
+        color: '#c0caf5', // Light text for options
+        fontSize: 14,
+    },
+    modalImageOption: {
+        borderWidth: 3, // Thicker border for image selection visual
+        borderColor: 'transparent',
+        borderRadius: 10, // Rounded corners for image container
+        marginRight: 10, // Space between images
+        marginBottom: 10,
+        overflow: 'hidden', // Clip image to border radius
+        backgroundColor: '#4f5677', // Background for placeholder
+    },
+    modalOptionImage: {
+        width: 60,
+        height: 60,
+        borderRadius: 7, // Slightly less than container to show border
+    },
+    modalOptionImagePlaceholder: {
+        width: 60,
+        height: 60,
+        borderRadius: 7,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    modalActionContainer: {
+        flexDirection: 'row',
+        justifyContent: 'space-between', // Space out buttons
+        marginTop: 10, // Space above buttons
+    },
+    modalActionButton: {
+        flex: 1, // Take equal width
+        paddingVertical: 12,
+        borderRadius: 25,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginHorizontal: 5,
+    },
+    modalActionButtonText: {
+        color: '#1a1b26',
+        fontSize: 15,
+        fontWeight: 'bold',
+    },
+    modalConfirmButton: {
+        backgroundColor: '#73daca', // Teal color for confirm
+    },
+    modalCancelButton: {
+        backgroundColor: '#f7768e', // Reddish color for cancel
+    },
+  });

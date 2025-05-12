@@ -17,6 +17,7 @@ export default function ShowDetailScreen() {
   const [participant, setParticipants] = useState<Person[]>([]);
   const [loading, setLoading] = useState(true);
 
+
   const colorScheme = useColorScheme();
 
   useEffect(() => {

@@ -1,49 +1,49 @@
-import { useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import {
   StyleSheet,
   TextInput,
-  Image,
   ScrollView,
-  ActivityIndicator,
   TouchableOpacity,
 } from "react-native";
 import { Link } from "expo-router";
 import { Pressable, View, Text } from "react-native";
-import GenreTag from "@/components/GenreTag";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { Show } from "@/app/types";
 import { useNavigation } from "@react-navigation/native";
 import Colors from "@/constants/Colors";
 import { useColorScheme } from "@/components/useColorScheme";
 import ShowBox from "@/components/ShowBox";
+import { GlobalContext } from "../GlobalContext";
 
 export default function ExploreScreen() {
   const [shows, setShows] = useState<Show[]>([]);
-  const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
 
   const navigation = useNavigation();
-
   const colorScheme = useColorScheme();
+  const context = useContext(GlobalContext);
+
+  if (!context) {
+    throw new Error(
+      "GlobalContext muss innerhalb eines GlobalProvider verwendet werden"
+    );
+  }
+
+  const { globalObject } = context;
 
   useEffect(() => {
-    searchShows();
-  }, []);
+    setShows(globalObject.shows);
+  }, [globalObject.shows]);
 
-  const searchShows = async () => {
-    setLoading(true);
-    try {
-      const response = await fetch(
-        `http://192.168.178.42:8080/shows/search?q=${query}`
-      );
-      const data: Show[] = await response.json();
-      setShows(data);
-      setLoading(false);
-    } catch (error) {
-      console.error(error);
-      setLoading(false);
-    }
-  };
+  useEffect(() => {
+    const filteredShows = globalObject.shows.filter(
+      (show) =>
+        show.title.toLowerCase().includes(query.toLowerCase()) ||
+        show.description.toLowerCase().includes(query.toLowerCase())
+    );
+    setShows(filteredShows);
+  }, [query, globalObject.shows]);
+
   return (
     <View
       style={[
@@ -77,7 +77,6 @@ export default function ExploreScreen() {
             spellCheck={false}
             value={query}
             onChangeText={setQuery}
-            onSubmitEditing={searchShows}
             style={styles.textInput}
           />
           {query.length > 0 && (
@@ -103,42 +102,25 @@ export default function ExploreScreen() {
             )}
           </Pressable>
         </Link>
-        <Pressable onPress={searchShows} style={{ marginLeft: 10 }}>
-          {({ pressed }) => (
-            <FontAwesome
-              name="refresh"
-              size={24}
-              color="white"
-              style={{ opacity: pressed ? 0.5 : 1 }}
-            />
-          )}
-        </Pressable>
       </View>
 
-      {loading ? (
-        <ActivityIndicator size="large" color="#fff" />
-      ) : shows.length === 0 ? (
-        <Text style={styles.noShowsText}>
-          Keine Shows gefunden. Versuche es mit einem anderen Suchbegriff.
-        </Text>
-      ) : (
-        <ScrollView
-          style={styles.scrollView}
-          bounces={true}
-          showsVerticalScrollIndicator={false}
-        >
-          {shows.map((show: Show) => (
-            <TouchableOpacity
-              onPress={() => {
-                navigation.navigate("ShowDetail", { show });
-              }}
-              key={show.showId}
-            >
-              <ShowBox key={show.showId} show={show} />
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-      )}
+      <ScrollView
+        style={styles.scrollView}
+        bounces={true}
+        showsVerticalScrollIndicator={false}
+      >
+        {shows.map((show: Show) => (
+          <TouchableOpacity
+            onPress={() => {
+              navigation.navigate("ShowDetail", { show });
+            }}
+            key={show.showId}
+            style={{ marginBottom: 10 }}
+          >
+            <ShowBox key={show.showId} show={show} />
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
     </View>
   );
 }
