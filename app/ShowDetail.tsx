@@ -2,8 +2,8 @@ import {
   StyleSheet,
   Image,
   Animated,
-  TouchableOpacity,
-  Pressable,
+  // TouchableOpacity,
+  // Pressable,
 } from "react-native";
 import { Text, View } from "@/components/Themed";
 import { Stack } from "expo-router";
@@ -14,6 +14,10 @@ import Colors from "@/constants/Colors";
 import { useColorScheme } from "@/components/useColorScheme";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import GenreTag from "@/components/GenreTag";
+
+import { GestureHandlerRootView, TouchableOpacity, TouchableWithoutFeedback } from "react-native-gesture-handler";
+
+import styles from "./ShowDetail.styles";
 
 export default function ShowDetailScreen() {
   const route = useRoute();
@@ -98,332 +102,183 @@ export default function ShowDetailScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      <Stack.Screen
-        options={{
-          title: show.title || "Show Detail",
-          headerBackTitle: "Entdecken",
-          headerTintColor: Colors[colorScheme ?? "light"].text,
-          headerStyle: {
-            backgroundColor: Colors[colorScheme ?? "light"].background,
-          },
-        }}
-      />
-      <Animated.ScrollView
-        style={styles.scrollView}
-        showsVerticalScrollIndicator={false}
-        onScroll={Animated.event(
-          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-          { useNativeDriver: true }
-        )}
-        scrollEventThrottle={16}
-      >
-        <Animated.View
-          style={[
-            styles.bannerContainer,
-            {
-              transform: [
-                {
-                  translateY: scrollY.interpolate({
-                    inputRange: [-200, 0, 200],
-                    outputRange: [-100, 0, 0],
-                    extrapolate: "clamp",
-                  }),
-                },
-                {
-                  scale: scrollY.interpolate({
-                    inputRange: [-200, 0, 200],
-                    outputRange: [1.5, 1, 1],
-                    extrapolate: "clamp",
-                  }),
-                },
-              ],
+    <GestureHandlerRootView style={{flex: 1}}>
+      <View style={styles.container}>
+        <Stack.Screen
+          options={{
+            title: show.title || "Show Detail",
+            headerBackTitle: "Entdecken",
+            headerTintColor: Colors[colorScheme ?? "light"].text,
+            headerStyle: {
+              backgroundColor: Colors[colorScheme ?? "light"].background,
             },
-          ]}
+          }}
+        />
+        <Animated.ScrollView
+          style={styles.scrollView}
+          showsVerticalScrollIndicator={false}
+          onScroll={Animated.event(
+            [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+            { useNativeDriver: true }
+          )}
+          scrollEventThrottle={16}
         >
-          <Image source={{ uri: show.bannerUrl }} style={styles.bannerImage} />
-          <View style={styles.overlayContainer}>
-            <View style={styles.overlayUp}>
-              <FontAwesome
-                name="heart"
-                size={27}
-                color="#de092d"
-                style={{
-                  padding: 7,
-                  backgroundColor: "rgba(0,0,0,0.5)",
-                  borderRadius: 90,
-                  opacity: 0.9,
-                }}
-              />
+          <Animated.View
+            style={[
+              styles.bannerContainer,
+              {
+                transform: [
+                  {
+                    translateY: scrollY.interpolate({
+                      inputRange: [-200, 0, 200],
+                      outputRange: [-100, 0, 0],
+                      extrapolate: "clamp",
+                    }),
+                  },
+                  {
+                    scale: scrollY.interpolate({
+                      inputRange: [-200, 0, 200],
+                      outputRange: [1.5, 1, 1],
+                      extrapolate: "clamp",
+                    }),
+                  },
+                ],
+              },
+            ]}
+          >
+
+            <Image source={{ uri: show.bannerUrl }} style={styles.bannerImage} />
+            <View style={styles.overlayContainer}>
+              <View style={styles.overlayUp}>
+                <FontAwesome
+                  name="heart"
+                  size={27}
+                  color="#de092d"
+                  style={{
+                    padding: 7,
+                    backgroundColor: "rgba(0,0,0,0.5)",
+                    borderRadius: 90,
+                    opacity: 0.9,
+                  }}
+                />
+              </View>
+
+              <View style={styles.overlayDown}>
+                <View style={styles.overlayDownLeft}>
+                  {show.genre.split(", ").map((genre) => (
+                    <GenreTag key={genre}>{genre}</GenreTag>
+                  ))}
+                </View>
+                <View style={styles.overlayDownRight}>
+                  {show.streamingServices.split(", ").map((service) => (
+                    <Image
+                      key={service}
+                      style={styles.streamingIcon}
+                      source={{ uri: streamingIcons[service] }}
+                    />
+                  ))}
+                </View>
+              </View>
             </View>
 
-            <View style={styles.overlayDown}>
-              <View style={styles.overlayDownLeft}>
-                {show.genre.split(", ").map((genre) => (
-                  <GenreTag key={genre}>{genre}</GenreTag>
-                ))}
-              </View>
-              <View style={styles.overlayDownRight}>
-                {show.streamingServices.split(", ").map((service) => (
-                  <Image
-                    key={service}
-                    style={styles.streamingIcon}
-                    source={{ uri: streamingIcons[service] }}
-                  />
-                ))}
-              </View>
-            </View>
-          </View>
-        </Animated.View>
-        <View style={styles.contentContainer}>
-          <Text style={styles.title}>{show.title}</Text>
-          <Text style={styles.years}>
-            {show.endDate
-              ? parseDate(show.startDate).getFullYear() +
+          </Animated.View>
+          <View style={styles.contentContainer}>
+            <Text style={styles.title}>{show.title}</Text>
+            <Text style={styles.years}>
+              {show.endDate
+                ? parseDate(show.startDate).getFullYear() +
                 " - " +
                 parseDate(show.endDate).getFullYear()
-              : "seit " + parseDate(show.startDate).getFullYear()}
-          </Text>
-          <Pressable
-            onPress={() => setDescriptionLines(descriptionLines === 4 ? 0 : 4)}
-          >
-            <Text
-              numberOfLines={descriptionLines}
-              style={[
-                styles.description,
-                { color: Colors[colorScheme ?? "light"].text },
-              ]}
-            >
-              {show.description}
+                : "seit " + parseDate(show.startDate).getFullYear()}
             </Text>
-          </Pressable>
-          <Text style={styles.subTitle}>Staffeln:</Text>
-
-          {seasons.map((season) => (
-            <View key={season.seasonId}>
-              <TouchableOpacity
-                onPress={() => toggleSeason(season.seasonId)}
+            <TouchableWithoutFeedback
+              onPress={() => setDescriptionLines(descriptionLines === 4 ? 0 : 4)}
+            >
+              <Text
+                numberOfLines={descriptionLines}
                 style={[
-                  styles.seasonButton,
-                  {
-                    backgroundColor:
-                      Colors[colorScheme ?? "light"].secondaryBackground,
-                  },
+                  styles.description,
+                  { color: Colors[colorScheme ?? "light"].text },
                 ]}
               >
-                <Text style={styles.seasonTitle}>
-                  Staffel {season.seasonNumber} (
-                  {season.startDate.split("-")[0]})
-                </Text>
+                {show.description}
+              </Text>
+            </TouchableWithoutFeedback>
+            <Text style={styles.subTitle}>Staffeln:</Text>
 
-                <FontAwesome
-                  name={
-                    expandedSeason === season.seasonId
-                      ? "chevron-up"
-                      : "chevron-down"
-                  }
-                  size={20}
-                  color={Colors[colorScheme ?? "light"].text}
-                  style={{ marginRight: 15 }}
-                />
-              </TouchableOpacity>
-              {expandedSeason === season.seasonId && (
-                <View style={styles.seasonContent}>
-                  <Text style={{ fontWeight: "bold" }}>
-                    {formatDate(season.startDate)} -{" "}
-                    {formatDate(season.endDate)}
-                    {"  •  "}
-                    {season.participants.length} Teilnehmer
-                  </Text>
-                  <View style={styles.participantsContainer}>
 
+            {seasons.map((season) => (
+              <View key={season.seasonId}>
+                <TouchableWithoutFeedback
+                  onPress={() => toggleSeason(season.seasonId)}
+                  style={[
+                    styles.seasonButton,
                     {
-                      season.participants.map((participant) => (
+                      backgroundColor:
+                        Colors[colorScheme ?? "light"].secondaryBackground,
+                    },
+                  ]}
+                >
+                  <Text style={styles.seasonTitle}>
+                    Staffel {season.seasonNumber} (
+                    {season.startDate.split("-")[0]})
+                  </Text>
+
+                  <FontAwesome
+                    name={
+                      expandedSeason === season.seasonId
+                        ? "chevron-up"
+                        : "chevron-down"
+                    }
+                    size={20}
+                    color={Colors[colorScheme ?? "light"].text}
+                    style={{ marginRight: 15 }}
+                  />
+                </TouchableWithoutFeedback>
+                {expandedSeason === season.seasonId && (
+                  <View style={styles.seasonContent}>
+                    <Text style={{ fontWeight: "bold" }}>
+                      {formatDate(season.startDate)} -{" "}
+                      {formatDate(season.endDate)}
+                      {"  •  "}
+                      {season.participants.length} Teilnehmer
+                    </Text>
+                    <View style={styles.participantsContainer}>
+                      {season.participants.map((p) => (
                         <TouchableOpacity
-                          key={participant.personId}
+                          key={p.personId}
                           style={styles.personContainer}
                           onPress={() =>
-                            navigation.navigate("PersonDetail", {
-                              person: participant,
-                              show: show,
-                              season: season,
-                            })
-                          }
+                              navigation.navigate("PersonDetail", {
+                                person: p,
+                                show: show,
+                                season: season,
+                              })
+                            }
                         >
                           <View style={styles.personImageContainer}>
                             <Image
-                              source={{ uri: participant.imageUrl }}
+                              source={{ uri: p.imageUrl }}
                               style={{ width: "100%", height: "100%", borderRadius: 90 }}
                             />
                           </View>
                           <Text style={styles.personInfoText}>
-                            {participant.name} ({calculateAge(participant.birthDate)})
+                            {p.name} ({calculateAge(p.birthDate)})
                           </Text>
                         </TouchableOpacity>
-                      ))
-                    }
-
-                    
+                      ))}
+                    </View>
                   </View>
-                </View>
-              )}
-            </View>
-          ))}
-        </View>
-      </Animated.ScrollView>
-    </View>
+                )}
+              </View>
+            ))}
+
+          </View>
+
+        </Animated.ScrollView>
+
+      </View>
+    </GestureHandlerRootView>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "flex-start",
-  },
-  scrollView: {
-    width: "100%",
-  },
-  bannerContainer: {
-    width: "100%",
-    height: 200,
-    overflow: "hidden",
-  },
-  bannerImage: {
-    width: "100%",
-    height: "100%",
-    position: "absolute",
-    top: 0,
-    left: 0,
-  },
-  overlayContainer: {
-    position: "absolute",
-    // bottom: 20,
-    // left: 20,
-    backgroundColor: "rgba(0,0,0)",
-    // padding: 10,
-    width: "100%",
-    height: "100%",
-    // borderRadius: 5,
-  },
-  overlayUp: {
-    flex: 1,
-    justifyContent: "flex-end",
-    alignItems: "flex-start",
-    padding: 10,
-    backgroundColor: "rgba(0,0,0)",
-    flexDirection: "row",
-  },
-  overlayDown: {
-    flex: 1,
-    justifyContent: "flex-end",
-    alignItems: "flex-end",
-    backgroundColor: "rgba(0,0,0,0.0)",
-    flexDirection: "row",
-  },
-  overlayDownLeft: {
-    flex: 1,
-    // justifyContent: "flex-end",
-    alignContent: "flex-end",
-    // alignItems: "flex-start",
-    backgroundColor: "rgba(200,0,0,0.0)",
-    flexDirection: "row",
-    flexWrap: "wrap-reverse",
-    gap: 5,
-    padding: 5,
-  },
-  overlayDownRight: {
-    flex: 1,
-    justifyContent: "flex-end",
-    alignItems: "flex-end",
-    backgroundColor: "rgba(0,0,200,0.0)",
-    flexDirection: "row",
-    flexWrap: "wrap-reverse",
-  },
-  streamingIcon: {
-    height: 45,
-    aspectRatio: 1,
-    resizeMode: "contain",
-    // alignSelf: "center",
-    backgroundColor: "rgba(0,0,0,0.1)",
-    borderRadius: 90,
-    margin: 5,
-    padding: 1,
-  },
-  contentContainer: {
-    padding: 20,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: "bold",
-    // marginBottom: 10,
-  },
-  years: {
-    fontSize: 18,
-    marginBottom: 10,
-    color: "lightgray",
-    fontStyle: "italic",
-    width: "100%",
-    textAlign: "left",
-    opacity: 0.7,
-  },
-  subTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
-    marginBottom: 10,
-  },
-  description: {
-    fontSize: 16,
-    marginBottom: 20,
-    color: "lightgray",
-    textAlign: "left",
-  },
-  seasonButton: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingVertical: 10,
-    marginBottom: 5,
-    backgroundColor: "#1b1e2b",
-    borderRadius: 4,
-  },
-  seasonTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    marginLeft: 15,
-  },
-  seasonContent: {
-    paddingVertical: 10,
-    marginLeft: 15,
-    marginBottom: 15,
-  },
-  participantsContainer: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    width: "100%",
-    // height: 100,
-    // backgroundColor: "red",
-    justifyContent: "space-between",
-  },
-  personContainer: {
-    // backgroundColor: "blue",
-    margin: 5,
-    alignItems: "center",
-    justifyContent: "flex-start", // Changed from "center" to "flex-start"
-    // flexDirection: "row",
-    // backgroundColor: "red",
-    width: '30%',
-  },
-  personInfoText: {
-    textAlign: "center",
-    marginTop: 4,
-    wordWrap: "normal",
-  },
-  personImageContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: 90,
-    backgroundColor: "lightgray",
-    marginTop: 5,
-  },
-});

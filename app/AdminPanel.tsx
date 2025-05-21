@@ -1,17 +1,3 @@
-import { StatusBar } from "expo-status-bar";
-import {
-  Platform,
-  StyleSheet,
-  Image,
-  ScrollView,
-  Dimensions,
-  TouchableOpacity,
-  Modal,
-  PanResponder,
-  ActivityIndicator,
-  ViewStyle,
-} from "react-native";
-
 import EditScreenInfo from "@/components/EditScreenInfo";
 import { Text, View } from "@/components/Themed";
 import { useNavigation } from "@react-navigation/native";
@@ -25,6 +11,9 @@ import { Person, Season, Show } from "@/app/types";
 import { useRoute } from "@react-navigation/native";
 import { GlobalContext } from "@/app/GlobalContext";
 import Entypo from '@expo/vector-icons/Entypo';
+
+import { GestureHandlerRootView, TouchableOpacity } from "react-native-gesture-handler";
+import styles from "./AdminPanel.styles";
 
 export default function PersonDetail() {
   const navigation = useNavigation();
@@ -54,40 +43,18 @@ export default function PersonDetail() {
   }
 
   return (
-    <View style={styles.container}>
-      <TouchableOpacity style={styles.button} onPress={() => navigation.navigate("PersonMerge")}>
-        <Entypo name="merge" size={16} color="white" />
-        <Text style={styles.buttonText}>Personen verknüpfen</Text>
-      </TouchableOpacity>
-    </View>
+    <GestureHandlerRootView>
+      <View style={styles.container}>
+        <TouchableOpacity style={styles.button} onPress={() => navigation.navigate("PersonMerge")}>
+          <Entypo name="merge" size={16} color="white" />
+          <Text style={styles.buttonText}>Personen verknüpfen</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.button} onPress={() => navigation.navigate("Updates")}>
+          <Entypo name="ccw" size={16} color="white" />
+          <Text style={styles.buttonText}>Updates</Text>
+        </TouchableOpacity>
+      </View>
+    </GestureHandlerRootView>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "flex-start",
-    // padding: 5,
-  },
-  buttonText: {
-    color: "white",
-    fontSize: 16,
-    marginTop: 5,
-    height: '100%',
-  },
-  button: { 
-    backgroundColor: "#1b1e2b",
-    padding: 10,
-    borderRadius: 8,
-    marginBottom: 10,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 10,
-    marginTop: 20,
-  },
-
-
-
-});

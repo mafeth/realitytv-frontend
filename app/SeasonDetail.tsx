@@ -8,6 +8,8 @@ import Colors from "@/constants/Colors";
 import { useColorScheme } from "@/components/useColorScheme";
 import SeasonButton from "@/components/SeasonButton";
 
+import styles from "./SeasonDetail.styles";
+
 export default function ShowDetailScreen() {
   const route = useRoute();
   const { season } = route.params as { season: Season };
@@ -66,43 +68,3 @@ export default function ShowDetailScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "flex-start",
-  },
-  scrollView: {
-    width: "100%",
-  },
-  bannerContainer: {
-    width: "100%",
-    height: 200,
-    overflow: "hidden",
-    backgroundColor: "lightgray",
-  },
-  bannerImage: {
-    width: "100%",
-    height: "100%",
-    position: "absolute",
-    top: -0,
-    left: 0,
-  },
-  contentContainer: {
-    padding: 20,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: "bold",
-    marginBottom: 10,
-  },
-  smallTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    marginBottom: 10,
-  },
-  text: {
-    fontSize: 16,
-    marginBottom: 20,
-  },
-});

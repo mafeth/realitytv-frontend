@@ -10,10 +10,11 @@ import {
   PanResponder,
   ActivityIndicator,
   ViewStyle,
+  View,
+  Text
 } from "react-native";
 
 import EditScreenInfo from "@/components/EditScreenInfo";
-import { Text, View } from "@/components/Themed";
 import { useNavigation } from "@react-navigation/native";
 import { Stack, useFocusEffect } from "expo-router";
 import { useEffect, useState, useRef, useContext, useCallback } from "react";
@@ -24,6 +25,9 @@ import { useColorScheme } from "@/components/useColorScheme";
 import { Person, Season, Show } from "@/app/types";
 import { useRoute } from "@react-navigation/native";
 import { GlobalContext } from "@/app/GlobalContext";
+import AntDesign from '@expo/vector-icons/AntDesign';
+
+import styles from "./PersonDetail.styles";
 
 export default function PersonDetail() {
   const navigation = useNavigation();
@@ -128,18 +132,19 @@ export default function PersonDetail() {
         onLongPress={() => handleLongPress(person.imageUrl)}
       >
         <View style={[styles.personImage, { width: size, height: size }]}>
-          <Image
+          {person.imageUrl ? <Image
             style={[styles.personImage, { width: size, height: size }]}
             source={{ uri: person.imageUrl }}
-          />
+          /> : <AntDesign name="user" size={size - 30} color="white" />}
+
         </View>
-        
+
         <Text
           style={[styles.personName, { fontSize: size / 4.8 }]}
           numberOfLines={1}
           ellipsizeMode="tail"
         >
-          {person.name.split(" ")[0]} ({calculateAge(person.birthDate)})
+          {size <= 60 ? person.name.split(" ")[0] : person.name + " ("+calculateAge(person.birthDate).toString()+")"}
         </Text>
       </TouchableOpacity>
     );
@@ -168,7 +173,7 @@ export default function PersonDetail() {
       />
 
       <View style={styles.header}>
-        <PersonBox person={person} size={125} />
+        <PersonBox person={person} size={80} />
       </View>
       <View style={{ backgroundColor: "white", width: 3, height: 20 }}></View>
       <View
@@ -177,7 +182,10 @@ export default function PersonDetail() {
 
       <ScrollView
         ref={scrollViewRef}
-        style={{}}
+        style={{flex: 1}}
+        // pagingEnabled={show.seasons.length > 0}
+        scrollEnabled={participatingSeasons.length > 1}
+        
         horizontal={true}
         decelerationRate={0}
         showsHorizontalScrollIndicator={false}
@@ -185,7 +193,7 @@ export default function PersonDetail() {
         snapToAlignment={"center"}
         contentInset={{
           top: 0,
-          left: 25, // Adjusted to keep everything centered
+          left: participatingSeasons.length > 1 ? 25 : 0, // Adjusted to keep everything centered
           bottom: 0,
           right: 25, // Adjusted to keep everything centered
         }}
@@ -224,7 +232,7 @@ export default function PersonDetail() {
                 <Text style={styles.yearLabel}>
                   {new Date(season.startDate).getFullYear()}
                 </Text>
-                <ShowBox show={getShowById(season.show)} displayedSeason={season}/>
+                <ShowBox show={getShowById(season.show)} displayedSeason={season} />
                 <View
                   style={{ backgroundColor: "white", width: 3, height: 20 }}
                 ></View>
@@ -270,9 +278,10 @@ export default function PersonDetail() {
                           borderRadius: 100,
                           justifyContent: "center",
                           alignItems: "center",
+                          backgroundColor: '#212432'
                         }}
                       >
-                        <Text style={{ fontWeight: "bold", fontSize: 18 }}>
+                        <Text style={{ fontWeight: "bold", fontSize: 18, color: 'white' }}>
                           +{season.participants.length - 8}
                         </Text>
                       </View>
@@ -291,97 +300,3 @@ export default function PersonDetail() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "flex-start",
-    // padding: 5,
-  },
-  separator: {
-    marginVertical: 30,
-    height: 1,
-    width: "80%",
-  },
-  header: {
-    width: "100%",
-    // height: 200,
-    // backgroundColor: "rgba(84, 180, 20, 0.62)",
-    justifyContent: "flex-start",
-    alignItems: "center",
-    padding: 10,
-  },
-  yearLabel: {
-    color: "white",
-    fontSize: 15,
-    fontWeight: "bold",
-    margin: 3,
-  },
-  personContainer: {
-    flexDirection: "column",
-    alignItems: "center",
-    backgroundColor: "#00000000",
-    margin: 5,
-  },
-  personImage: {
-    width: 125,
-    height: 125,
-    borderRadius: 200,
-  },
-  personName: {
-    fontSize: 20,
-    fontWeight: "bold",
-    color: "white",
-  },
-  view: {
-    // backgroundColor: 'blue',
-    width: Dimensions.get("window").width - 60,
-    marginHorizontal: 5, // Changed from 10 to 5
-
-    // height: 200,
-    // borderRadius: 10,
-    //paddingHorizontal : 30
-    alignItems: "center",
-  },
-  participantsBox: {
-    width: "100%",
-    alignItems: "center",
-    padding: 5,
-    backgroundColor: "#1c1c2b",
-    borderRadius: 10,
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
-  },
-  participantBoxContent: {
-    flexDirection: "row",
-    justifyContent: "space-evenly",
-    // alignItems: 'baseline',
-    // gap: 10,
-    flexWrap: "wrap",
-    borderRadius: 5,
-    backgroundColor: "#00000000",
-  },
-  modalContainer: {
-    flex: 1,
-    backgroundColor: "black",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  modalCloseArea: {
-    flex: 1,
-    width: "100%",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  fullImage: {
-    width: Dimensions.get("window").width,
-    height: Dimensions.get("window").height,
-    resizeMode: "contain",
-  },
-});
